@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/keypadblackdisplay"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.25"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0"
+        app:layout_constraintWidth_percent="0.25"
+        tools:ignore="MissingConstraints" />
+
+    <Button
+        android:id="@+id/btnOnOff"
+        android:layout_width="wrap_content"
+        android:layout_height="90dp"
+        android:width="50dp"
+        android:alpha="0"
+        android:background="#FFFF00"
+        android:text="OFF"
+        android:textColor="#DF013B"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.919"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/imageView"
+        app:layout_constraintVertical_bias="0.145" />
+
+    <Button
+        android:id="@+id/btnIncreaseVel"
+        android:layout_width="wrap_content"
+        android:layout_height="90dp"
+        android:layout_below="@id/btnDownTime"
+        android:alpha="0"
+        android:background="#FF11ff"
+        android:text=""
+        android:textColor="#FFFFFF"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/imageView"
+        app:layout_constraintVertical_bias="0.145" />
+
+    <Button
+        android:id="@+id/btnDecreaseVel"
+        android:layout_width="wrap_content"
+        android:layout_height="90dp"
+        android:alpha="0.0"
+        android:background="#11FFFF"
+        android:text=""
+        android:textColor="#FFFFFF"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.086"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/imageView"
+        app:layout_constraintVertical_bias="0.145" />
+
+
+    <ProgressBar
+        android:id="@+id/barSpeed"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:progressDrawable="@drawable/customprogressbar"
+        android:layout_width="200dp"
+        android:layout_height="30dp"
+        android:max="15"
+        android:minWidth="270dp"
+        android:minHeight="50dp"
+        android:progress="0"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/imageView"
+        app:layout_constraintHorizontal_bias="0.496"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnIncreaseVel"
+        app:layout_constraintVertical_bias="0.239"
+        android:visibility="gone"/>
+
+    <TextView
+        android:id="@+id/txtTimeHours"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="00"
+        android:textAlignment="center"
+        android:textColor="#FFFFFF"
+        android:textSize="36sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.409"
+        app:layout_constraintStart_toStartOf="@+id/imageView"
+        app:layout_constraintTop_toBottomOf="@+id/barSpeed"
+        app:layout_constraintVertical_bias="0.094" />
+
+    <TextView
+        android:id="@+id/txtTimeMinutes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="00"
+        android:textAlignment="center"
+        android:textColor="#FFFFFF"
+        android:textSize="36sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.1"
+        app:layout_constraintStart_toEndOf="@+id/txtTimeHours"
+        app:layout_constraintTop_toBottomOf="@+id/barSpeed"
+        app:layout_constraintVertical_bias="0.094" />
+
+    <Button
+        android:id="@+id/btnDownTime"
+        android:layout_width="wrap_content"
+        android:layout_height="90dp"
+        android:alpha="0"
+        android:background="#F44336"
+        android:text="-"
+        android:textColor="#FFFFFF"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.086"
+        app:layout_constraintStart_toStartOf="@+id/imageView"
+        app:layout_constraintTop_toBottomOf="@+id/txtTimeHours"
+        app:layout_constraintVertical_bias="0.38" />
+
+    <Button
+        android:id="@+id/btnUpTime"
+        android:layout_width="wrap_content"
+        android:layout_height="90dp"
+        android:layout_below="@id/btnOnOff"
+        android:layout_toRightOf="@id/txtTimeMinutes"
+        android:alpha="0"
+        android:background="#69AE2D"
+        android:text="+"
+        android:textColor="#FFFFFF"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@+id/imageView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.217"
+        app:layout_constraintStart_toEndOf="@+id/btnDownTime"
+        app:layout_constraintTop_toBottomOf="@+id/txtTimeHours"
+        app:layout_constraintVertical_bias="0.38" />
+
+
+    <TextView
+        android:id="@+id/countTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="36dp"
+        android:text="Counter number"
+        android:textColor="#000000"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnDecreaseVel"
+        tools:ignore="MissingConstraints"
+        android:visibility="visible"/>
+
+    <TextView
+        android:id="@+id/messageudp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="UDP Message"
+        android:textColor="#000000"
+        android:visibility="visible"
+        app:layout_constraintBottom_toTopOf="@+id/barSpeed"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.547"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnIncreaseVel"
+        app:layout_constraintVertical_bias="0.321"
+        tools:ignore="MissingConstraints" />
+
+    <TextView
+        android:id="@+id/txtShowIP"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Target IP is not set"
+        android:textColor="#000000"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/barSpeed"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.044"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/countTime"
+        app:layout_constraintVertical_bias="0.14"
+        tools:ignore="MissingConstraints" />
+
+    <Button
+        android:id="@+id/btnSettings"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="28dp"
+        android:layout_marginTop="40dp"
+        android:text="Settings"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/imageView"
+        app:layout_constraintTop_toBottomOf="@+id/btnDownTime"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <TextView
+        android:id="@+id/txtFanSpeed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="FAN"
+        android:textColor="#FFFFFF"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/barSpeed"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/imageView"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <TextView
+        android:id="@+id/txtRunTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif"
+        android:text="OFF"
+        android:textColor="#FFFFFF"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@+id/imageView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/barSpeed"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <TextView
+        android:id="@+id/txtTimeHourCero"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=":"
+        android:textColor="#FFFFFF"
+        android:textSize="36sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/btnUpTime"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/barSpeed"
+        app:layout_constraintVertical_bias="0.273" />
+
+    <Button
+        android:id="@+id/btnSend"
+        android:layout_width="wrap_content"
+        android:layout_height="90dp"
+        android:alpha="0"
+        android:text="Send"
+        android:textColor="#FFFFFF"
+        app:layout_constraintBottom_toBottomOf="@+id/imageView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.64"
+        app:layout_constraintStart_toEndOf="@+id/btnUpTime"
+        app:layout_constraintTop_toBottomOf="@+id/txtTimeHourCero"
+        app:layout_constraintVertical_bias="0.38" />
+
+    <Button
+        android:id="@+id/startTimeCounter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Timer"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.2"
+        app:layout_constraintStart_toEndOf="@+id/btnSettings"
+        app:layout_constraintTop_toBottomOf="@+id/btnUpTime"
+        app:layout_constraintVertical_bias="0.307" />
+
+    <Button
+        android:id="@+id/status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ask Status"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.52"
+        app:layout_constraintStart_toEndOf="@+id/startTimeCounter"
+        app:layout_constraintTop_toBottomOf="@+id/btnUpTime"
+        app:layout_constraintVertical_bias="0.307" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
