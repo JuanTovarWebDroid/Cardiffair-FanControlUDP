@@ -26,10 +26,13 @@ fan can be turn off from the app.
 package com.example.ESP32CAR
 
 
+import android.R.string
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.os.StrictMode
+import android.text.TextUtils.split
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -44,11 +47,6 @@ import java.net.DatagramSocket
 import java.net.InetAddress
 
 
-
-import android.os.CountDownTimer
-import java.net.SocketAddress
-
-
 var mySpeed: Int = 0
 var myTimeMinutes: Int = 0
 var myTimeHours: Int = 0
@@ -56,6 +54,8 @@ var myTargetIP = "not set"
 var myTargetPort = "not set"
 var myUDP:String = ""
 var message:String=""
+var fanStatus: Int = -2
+var keepStatus: Boolean=false
 
 
 
@@ -121,18 +121,26 @@ open class MainActivity : AppCompatActivity() {
         try {
             //Keep a socket open to listen to all the UDP trafic that is destined for this port
             Log.i("Text: -----> ", "Im in try ")
-            socket = DatagramSocket(mySettings.RemotePort, InetAddress.getByName(mySettings.RemoteHost))
+            socket = DatagramSocket(
+                mySettings.RemotePort,
+                InetAddress.getByName(mySettings.RemoteHost)
+            )
             socket.broadcast = true
             socket.reuseAddress = true
 
 
             val packet = DatagramPacket(buffer, buffer.size)
+
             socket.receive(packet)
-            message = packet.data.toString()
+            val data = String(packet.data, 0, packet.length)
+            Log.i("New Data ---->", data)
+            //data = packet.data.toString()
             println("open fun receiveUDP packet received = " + message)
-            println("open fun receiveUDP packet received = " + buffer)
+            //println("open fun receiveUDP packet received = " + buffer)
             Log.i("Text: -----> ", packet.data.toString())
-            //messageudp.text = message
+            message = data
+            //messageudp.text = data
+
             socket.close()
 
         } catch (e: Exception) {
@@ -162,26 +170,81 @@ open class MainActivity : AppCompatActivity() {
 
 
 
+
+        myUDP = "STATUS\n"
+
         startTimeCounter.setOnClickListener {
 
-            myUDP = "STATUS\n"
-            sendUDP(myUDP)
+            //myUDP = "STATUS\n"
+            //sendUDP(myUDP)
 
             var messageudp = this.findViewById<TextView>(R.id.messageudp)
 
                 val countTimeShows = this.findViewById<TextView>(R.id.countTime)
-                object  : CountDownTimer(3000, 1000) {
+                object  : CountDownTimer(200000, 500) {
                     override fun onTick(millisUntilFinished: Long) {
                         countTimeShows.text = counter.toString()
+
+
+                        sendUDP(myUDP)
+
                         counter++
                         Thread({
                             //Do some Network Request
-                            Log.i("Text: -----> ", "Im in thread... launch receiveUDP ")
-                            Log.i("Counter: -----> ", counter.toString())
+                            //Log.i("Text: -----> ", "Im in thread... launch receiveUDP ")
+                            //Log.i("Counter: -----> ", counter.toString())
                             receiveUDP()
                             runOnUiThread({
                                 //Update UI
                                 messageudp.text = message
+                                var datamessage = message.toString()
+                                fanStatus = datamessage.indexOf("N")
+                                println("chartArray ---> " + datamessage.indexOf("N"))
+                                if (datamessage.indexOf("N") > 0) {
+                                    println("Estoy entrando al if FanStatus")
+
+                                    OnOFFButton.setText("ON")
+
+                                    txtFanSpeed.text = "FAN SPEED"
+                                    txtFanSpeed.textSize = 18f
+                                    SpeedBarShow.visibility = View.VISIBLE
+                                    txtRunTime.text = "RUN TIME"
+                                    txtRunTime.textSize = 18f
+                                    TimeShowHours.visibility = View.VISIBLE
+                                    TimeShowMinutes.visibility = View.VISIBLE
+                                    txt2Points.visibility = View.VISIBLE
+
+                                    var speedAndTimeValue = datamessage.substring(
+                                        datamessage.indexOf(
+                                            "["
+                                        )
+                                    )
+                                    println(speedAndTimeValue)
+                                    speedAndTimeValue = speedAndTimeValue.replace("[", "")
+                                    speedAndTimeValue = speedAndTimeValue.replace("]", "")
+//
+                                    //                                  var speedTimeHourArray: Array<String>
+                                    //speedTimeHourArray = speedAndTimeValue.split(",").toTypedArray()
+                                    //println(speedTimeHourArray)
+                                    //SpeedBarShow.progress = mySpeed
+
+                                    fanStatus = -2
+                                    keepStatus = true
+
+
+                                } else if (datamessage.indexOf("F") > 0) {
+                                    txtFanSpeed.text = "FAN"
+                                    txtFanSpeed.textSize = 30f
+                                    SpeedBarShow.visibility = View.GONE
+                                    txtRunTime.text = "OFF"
+                                    txtRunTime.textSize = 30f
+                                    TimeShowHours.visibility = View.GONE
+                                    TimeShowMinutes.visibility = View.GONE
+                                    txt2Points.visibility = View.GONE
+                                }
+                                //var dataMessageArry = datamessage.toCharArray()
+
+
                             })
                         }).start()
 
@@ -192,6 +255,7 @@ open class MainActivity : AppCompatActivity() {
                 }.start()
 
         }
+
 
         status.setOnClickListener {
 
@@ -313,7 +377,7 @@ open class MainActivity : AppCompatActivity() {
             if(OnOFFButton.text.toString() == "ON"){
                 mySpeed += 1
                 if (mySpeed > 15) mySpeed = 15
-                val SpeedBarShow = this.findViewById<ProgressBar>(R.id.barSpeed)
+                //val SpeedBarShow = this.findViewById<ProgressBar>(R.id.barSpeed)
                 SpeedBarShow.progress = mySpeed
                 myUDP = mySpeed.toString()
                 sendUDP(myUDP)
