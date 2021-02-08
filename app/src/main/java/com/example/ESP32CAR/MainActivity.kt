@@ -26,13 +26,11 @@ fan can be turn off from the app.
 package com.example.ESP32CAR
 
 
-import android.R.string
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.StrictMode
-import android.text.TextUtils.split
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -54,6 +52,14 @@ var myTargetIP = "not set"
 var myTargetPort = "not set"
 var myUDP:String = ""
 var message:String=""
+var statusOnOFFReceived:String=""
+var speedReceived:String=""
+var hour2ShowScreen:String=""
+var minutes2ShowScreen:String=""
+var setTime:String=""
+var myUDPset:String=""
+
+
 var fanStatus: Int = -2
 var keepStatus: Boolean=false
 
@@ -113,10 +119,7 @@ open class MainActivity : AppCompatActivity() {
     open fun receiveUDP() {
         Log.i("Text: -----> ", "Im in Receive method")
         val buffer = ByteArray(256)
-
         var socket: DatagramSocket? = null
-        //val socket = DatagramSocket()
-
 
         try {
             //Keep a socket open to listen to all the UDP trafic that is destined for this port
@@ -134,12 +137,36 @@ open class MainActivity : AppCompatActivity() {
             socket.receive(packet)
             val data = String(packet.data, 0, packet.length)
             Log.i("New Data ---->", data)
-            //data = packet.data.toString()
-            println("open fun receiveUDP packet received = " + message)
-            //println("open fun receiveUDP packet received = " + buffer)
-            Log.i("Text: -----> ", packet.data.toString())
             message = data
-            //messageudp.text = data
+            var datamessage = message.toString()
+            var parts = datamessage.split(",")
+
+            statusOnOFFReceived = parts[0]
+            speedReceived = parts[1]
+
+            var hour = parts[2].toInt()/3600
+
+            val hour2Show = hour as Int
+            val newHourInSecounds = hour2Show * 3600
+            val minutesInSecounds = parts[2].toInt() - newHourInSecounds
+
+            var minutes2Show = minutesInSecounds/60
+            minutes2Show = minutes2Show as Int
+
+            println("hour to show -------> " + hour2Show)
+            println("minutes to show -------> " + minutes2Show)
+
+            if(hour2Show <10){
+                hour2ShowScreen = "0" + hour2Show.toString()
+            } else{
+                hour2ShowScreen = hour2Show.toString()
+            }
+
+            if(minutes2Show <10){
+                minutes2ShowScreen = "0" + minutes2Show.toString()
+            } else{
+                minutes2ShowScreen = minutes2Show.toString()
+            }
 
             socket.close()
 
@@ -166,96 +193,83 @@ open class MainActivity : AppCompatActivity() {
         val TimeShowHours = this.findViewById<TextView>(R.id.txtTimeHours)
         val TimeShowMinutes = this.findViewById<TextView>(R.id.txtTimeMinutes)
         val txt2Points = this.findViewById<TextView>(R.id.txtTimeHourCero)
-
-
-
-
+        val txt2PointsReceiving = this.findViewById<TextView>(R.id.txtTimeHourPointReceive)
+        val TimeShowHoursReceiving= this.findViewById<TextView>(R.id.txtTimeHoursReceiving)
+        val TimeShowMinutesReceiving= this.findViewById<TextView>(R.id.txtTimeMinutesReceiving)
+        val SlashSeparator= this.findViewById<TextView>(R.id.txtTimeSlash)
 
         myUDP = "STATUS\n"
 
-        startTimeCounter.setOnClickListener {
 
-            //myUDP = "STATUS\n"
-            //sendUDP(myUDP)
+        var messageudp = this.findViewById<TextView>(R.id.messageudp)
 
-            var messageudp = this.findViewById<TextView>(R.id.messageudp)
+            val countTimeShows = this.findViewById<TextView>(R.id.countTime)
+            object  : CountDownTimer(5000, 1000) {
+                override fun onTick(millisUntilFinished: Long) {
+                    countTimeShows.text = counter.toString()
 
-                val countTimeShows = this.findViewById<TextView>(R.id.countTime)
-                object  : CountDownTimer(200000, 500) {
-                    override fun onTick(millisUntilFinished: Long) {
-                        countTimeShows.text = counter.toString()
+                    sendUDP(myUDP)
 
+                    counter++
+                    Thread({
+                        //Do some Network Request
+                        receiveUDP()
+                        runOnUiThread({
+                            //Update UI
+                            messageudp.text = message
 
-                        sendUDP(myUDP)
+                            when (statusOnOFFReceived) {
+                                "OFF" -> {
 
-                        counter++
-                        Thread({
-                            //Do some Network Request
-                            //Log.i("Text: -----> ", "Im in thread... launch receiveUDP ")
-                            //Log.i("Counter: -----> ", counter.toString())
-                            receiveUDP()
-                            runOnUiThread({
-                                //Update UI
-                                messageudp.text = message
-                                var datamessage = message.toString()
-                                fanStatus = datamessage.indexOf("N")
-                                println("chartArray ---> " + datamessage.indexOf("N"))
-                                if (datamessage.indexOf("N") > 0) {
-                                    println("Estoy entrando al if FanStatus")
+                                    OnOFFButton.setText("OFF")
 
-                                    OnOFFButton.setText("ON")
-
-                                    txtFanSpeed.text = "FAN SPEED"
-                                    txtFanSpeed.textSize = 18f
-                                    SpeedBarShow.visibility = View.VISIBLE
-                                    txtRunTime.text = "RUN TIME"
-                                    txtRunTime.textSize = 18f
-                                    TimeShowHours.visibility = View.VISIBLE
-                                    TimeShowMinutes.visibility = View.VISIBLE
-                                    txt2Points.visibility = View.VISIBLE
-
-                                    var speedAndTimeValue = datamessage.substring(
-                                        datamessage.indexOf(
-                                            "["
-                                        )
-                                    )
-                                    println(speedAndTimeValue)
-                                    speedAndTimeValue = speedAndTimeValue.replace("[", "")
-                                    speedAndTimeValue = speedAndTimeValue.replace("]", "")
-//
-                                    //                                  var speedTimeHourArray: Array<String>
-                                    //speedTimeHourArray = speedAndTimeValue.split(",").toTypedArray()
-                                    //println(speedTimeHourArray)
-                                    //SpeedBarShow.progress = mySpeed
-
-                                    fanStatus = -2
-                                    keepStatus = true
-
-
-                                } else if (datamessage.indexOf("F") > 0) {
                                     txtFanSpeed.text = "FAN"
                                     txtFanSpeed.textSize = 30f
+
                                     SpeedBarShow.visibility = View.GONE
+                                    SpeedBarShow.progress = 0
+
                                     txtRunTime.text = "OFF"
                                     txtRunTime.textSize = 30f
                                     TimeShowHours.visibility = View.GONE
                                     TimeShowMinutes.visibility = View.GONE
                                     txt2Points.visibility = View.GONE
+                                    TimeShowHoursReceiving.visibility = View.GONE
+                                    TimeShowMinutesReceiving.visibility = View.GONE
+                                    txt2PointsReceiving.visibility = View.GONE
+                                    SlashSeparator.visibility = View.GONE
+
                                 }
-                                //var dataMessageArry = datamessage.toCharArray()
+                                "ON" -> {
 
+                                    OnOFFButton.setText("ON")
 
-                            })
-                        }).start()
+                                    txtFanSpeed.text = "FAN SPEED"
+                                    txtFanSpeed.textSize = 18f
 
-                    }
-                    override fun onFinish() {
-                        countTimeShows.text = "Finished"
-                    }
-                }.start()
+                                    SpeedBarShow.visibility = View.VISIBLE
+                                    SpeedBarShow.progress = speedReceived.toInt()
 
-        }
-
+                                    txtRunTime.text = "RUN TIME"
+                                    txtRunTime.textSize = 18f
+                                    TimeShowHours.visibility = View.VISIBLE
+                                    TimeShowMinutes.visibility = View.VISIBLE
+                                    txt2Points.visibility = View.VISIBLE
+                                    TimeShowHoursReceiving.visibility = View.VISIBLE
+                                    TimeShowHoursReceiving.text = hour2ShowScreen
+                                    TimeShowMinutesReceiving.visibility = View.VISIBLE
+                                    TimeShowMinutesReceiving.text = minutes2ShowScreen
+                                    txt2PointsReceiving.visibility = View.VISIBLE
+                                    SlashSeparator.visibility = View.VISIBLE
+                                }
+                            }
+                        })
+                    }).start()
+                }
+                override fun onFinish() {
+                    this.start()
+                }
+            }.start()
 
         status.setOnClickListener {
 
@@ -279,6 +293,10 @@ open class MainActivity : AppCompatActivity() {
                 TimeShowHours.visibility = View.GONE
                 TimeShowMinutes.visibility = View.GONE
                 txt2Points.visibility = View.GONE
+                TimeShowHoursReceiving.visibility = View.GONE
+                TimeShowMinutesReceiving.visibility = View.GONE
+                txt2PointsReceiving.visibility = View.GONE
+                SlashSeparator.visibility = View.GONE
 
                 myTimeHours = 0
                 myTimeMinutes = 0
@@ -287,11 +305,8 @@ open class MainActivity : AppCompatActivity() {
                 TimeShowMinutes.text = "0" + myTimeMinutes.toString()
                 SpeedBarShow.progress = mySpeed
 
-                val FanNumber =  "1"
-                val FanStatus = "0"
-                val Time = "0" + ":" +  "0"
-                myUDP = FanNumber + "," + FanStatus + "," + Time
-                sendUDP(myUDP)
+                myUDPset = "STATE,OFF"
+                sendUDP(myUDPset)
 
             // Button On status
             }else{
@@ -306,6 +321,13 @@ open class MainActivity : AppCompatActivity() {
                 TimeShowHours.visibility = View.VISIBLE
                 TimeShowMinutes.visibility = View.VISIBLE
                 txt2Points.visibility = View.VISIBLE
+                TimeShowHoursReceiving.visibility = View.VISIBLE
+                TimeShowMinutesReceiving.visibility = View.VISIBLE
+                txt2PointsReceiving.visibility = View.VISIBLE
+                SlashSeparator.visibility = View.VISIBLE
+
+                myUDPset = "STATE,ON"
+                sendUDP(myUDPset)
 
             }
         }
@@ -322,10 +344,12 @@ open class MainActivity : AppCompatActivity() {
                     myTimeMinutes = 0
                     myTimeHours += 1
 
-                    if (myTimeHours > 24 ) myTimeHours = 24
+                    if (myTimeHours > 12 ) myTimeHours = 12
                 }
 
-                if(myTimeHours == 24 && myTimeMinutes >= 0) myTimeMinutes = 0
+                if(myTimeHours == 12 && myTimeMinutes >= 0) myTimeMinutes = 0
+
+                setTime = (myTimeHours*3600 + myTimeMinutes*60).toString()
 
                 if(myTimeMinutes == 0 || myTimeMinutes == 60){
                     TimeShowMinutes.text = "0" + myTimeMinutes.toString()
@@ -355,6 +379,8 @@ open class MainActivity : AppCompatActivity() {
                         }
                     }
 
+                    setTime = (myTimeHours*3600 + myTimeMinutes*60).toString()
+
                     if(myTimeMinutes == 0 || myTimeMinutes == 60){
                         TimeShowMinutes.text = "0" + myTimeMinutes.toString()
                     }else{
@@ -379,8 +405,8 @@ open class MainActivity : AppCompatActivity() {
                 if (mySpeed > 15) mySpeed = 15
                 //val SpeedBarShow = this.findViewById<ProgressBar>(R.id.barSpeed)
                 SpeedBarShow.progress = mySpeed
-                myUDP = mySpeed.toString()
-                sendUDP(myUDP)
+                myUDPset = "SPEED," + mySpeed.toString()
+                sendUDP(myUDPset)
             }
         }
 
@@ -391,10 +417,9 @@ open class MainActivity : AppCompatActivity() {
             if(OnOFFButton.text.toString() == "ON"){
                 mySpeed -= 1
                 if (mySpeed < 0) mySpeed = 0
-                val SpeedBarShow = this.findViewById<ProgressBar>(R.id.barSpeed)
                 SpeedBarShow.progress = mySpeed
-                myUDP = mySpeed.toString()
-                sendUDP(myUDP)
+                myUDPset = "SPEED," + mySpeed.toString()
+                sendUDP(myUDPset)
             }
         }
 
@@ -403,11 +428,8 @@ open class MainActivity : AppCompatActivity() {
         **/
         btnSend.setOnClickListener {
             if(OnOFFButton.text.toString() == "ON"){
-                val FanNumber =  "1"
-                val FanStatus = "1"
-                val Time = myTimeHours.toString() + ":" +  myTimeMinutes.toString()
-                myUDP = FanNumber + "," + FanStatus + "," + Time
-                sendUDP(myUDP)
+                myUDPset = "TIME," + setTime
+                sendUDP(myUDPset)
             }
         }
 
