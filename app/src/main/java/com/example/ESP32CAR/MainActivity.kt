@@ -25,18 +25,15 @@ fan can be turn off from the app.
 
 package com.example.ESP32CAR
 
-
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.StrictMode
-import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.IOException
@@ -51,6 +48,13 @@ var myTimeHours: Int = 0
 var myTargetIP = "not set"
 var myTargetPort = "not set"
 var myUDP:String = ""
+
+val myUDPMessageBuffer = arrayOfNulls<String>(20)
+var udpMessageHead: Int = 0
+var udpMessageTail: Int = 0
+//var udpMessage:String=""
+//var udpNewMessage:Boolean= false
+
 var message:String=""
 var statusOnOFFReceived:String=""
 var speedReceived:String=""
@@ -58,12 +62,9 @@ var hour2ShowScreen:String=""
 var minutes2ShowScreen:String=""
 var setTime:String=""
 var myUDPset:String=""
-
-
-var fanStatus: Int = -2
-var keepStatus: Boolean=false
-
-
+var threadKill:Boolean = false
+var sendAbilable:Boolean = true
+var myUDPStorage:String = ""
 
 /*
 SoftOptions: Class with the IP and port variables to send the message through UDP protocol.
@@ -79,9 +80,27 @@ public class SoftOptions {
 //var RemoteHostMine: String = "192.168.1.117"
 // Global variable
 val mySettings = SoftOptions()
+var buff = ByteArray(2048)
 
 open class MainActivity : AppCompatActivity() {
 
+
+    fun udpSendMessage (myTextString: String){
+        myUDPMessageBuffer[udpMessageHead++] = myTextString
+        if (udpMessageHead >19) udpMessageHead = 0
+    }
+
+    fun bufferMaker(messageStr: String): ByteArray{
+
+        val data4Buffer = messageStr.toByte()
+
+        for (i in buff.indices){
+            buff[i] = data4Buffer
+        }
+
+        return buff
+
+    }
 
     /*
      *sendUDP: Function to send the message.
@@ -90,40 +109,36 @@ open class MainActivity : AppCompatActivity() {
         // Hack Prevent crash (sending should be done using an async task)
         val policy = StrictMode.ThreadPolicy.Builder().permitAll().build()
         StrictMode.setThreadPolicy(policy)
+
+        //val buff = ByteArray(2048)
+
         try {
             //Open a port to send the package
             val socket = DatagramSocket()
             socket.broadcast = true
             val sendData = messageStr.toByteArray()
-            val sendPacket = DatagramPacket(
-                sendData, sendData.size, InetAddress.getByName(
-                    mySettings.RemoteHost
-                ), mySettings.RemotePort
+            //buff[1] = messageStr.toByte()
+            val sendPacket = DatagramPacket(sendData, sendData.size, InetAddress.getByName(mySettings.RemoteHost), mySettings.RemotePort
             )
             socket.send(sendPacket)
-            println("Message SEND = " + sendPacket)
 
+            //socket.close()
 
-            val duration = Toast.LENGTH_SHORT
-            val toast = Toast.makeText(applicationContext, messageStr, duration)
-            toast.show()
-
-            socket.close()
 
         } catch (e: IOException) {
             //Log.e(FragmentActivity.TAG, "IOException: " + e.message)
         }
 
+        myUDP="STATUS\n"
+
     }
 
     open fun receiveUDP() {
-        Log.i("Text: -----> ", "Im in Receive method")
         val buffer = ByteArray(256)
         var socket: DatagramSocket? = null
 
         try {
             //Keep a socket open to listen to all the UDP trafic that is destined for this port
-            Log.i("Text: -----> ", "Im in try ")
             socket = DatagramSocket(
                 mySettings.RemotePort,
                 InetAddress.getByName(mySettings.RemoteHost)
@@ -135,8 +150,10 @@ open class MainActivity : AppCompatActivity() {
             val packet = DatagramPacket(buffer, buffer.size)
 
             socket.receive(packet)
+
+            println("----- Received Message ---- ")
+
             val data = String(packet.data, 0, packet.length)
-            Log.i("New Data ---->", data)
             message = data
             var datamessage = message.toString()
             var parts = datamessage.split(",")
@@ -153,9 +170,6 @@ open class MainActivity : AppCompatActivity() {
             var minutes2Show = minutesInSecounds/60
             minutes2Show = minutes2Show as Int
 
-            println("hour to show -------> " + hour2Show)
-            println("minutes to show -------> " + minutes2Show)
-
             if(hour2Show <10){
                 hour2ShowScreen = "0" + hour2Show.toString()
             } else{
@@ -168,7 +182,7 @@ open class MainActivity : AppCompatActivity() {
                 minutes2ShowScreen = minutes2Show.toString()
             }
 
-            socket.close()
+            //socket.close()
 
         } catch (e: Exception) {
             println("open fun receiveUDP catch exception." + e.toString())
@@ -177,8 +191,6 @@ open class MainActivity : AppCompatActivity() {
             socket?.close()
         }
     }
-
-    var counter = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -198,39 +210,126 @@ open class MainActivity : AppCompatActivity() {
         val TimeShowMinutesReceiving= this.findViewById<TextView>(R.id.txtTimeMinutesReceiving)
         val SlashSeparator= this.findViewById<TextView>(R.id.txtTimeSlash)
 
-        myUDP = "STATUS\n"
+        threadKill = false
+        //myUDP = "STATUS\n"
 
 
         var messageudp = this.findViewById<TextView>(R.id.messageudp)
 
-            val countTimeShows = this.findViewById<TextView>(R.id.countTime)
-            object  : CountDownTimer(5000, 1000) {
+
+        /*object  : CountDownTimer(5000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+
+                // if(sendAbilable){
+                sendUDP(myUDP)
+                //}
+
+                Thread({
+                    //Do some Network Request
+                    receiveUDP()
+                    runOnUiThread({
+                        //Update UI
+
+                    })
+                }).start()
+            }
+            override fun onFinish() {
+
+                if (!threadKill){
+                    this.start()
+                }else{
+                    finish()
+                }
+            }
+        }.start()
+
+*/
+
+        object  : CountDownTimer(5000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+
+                Thread({
+                    if(udpMessageHead == udpMessageTail){
+                        sendUDP("STATUS\n")
+                        println("----- Sent STATUS ---- " + java.util.Calendar.getInstance())
+                    }else{
+                        sendUDP(myUDPMessageBuffer[udpMessageTail++].toString())
+                        if (udpMessageTail >19) udpMessageTail = 0
+                        println("----- Sent Message ----" + java.util.Calendar.getInstance())
+
+                    }
+                    runOnUiThread({
+
+                    })
+                }).start()
+            }
+            override fun onFinish() {
+
+                if (!threadKill){
+                    this.start()
+                }else{
+                    finish()
+                }
+
+            }
+        }.start()
+
+
+
+
+
+
+
+        object  : CountDownTimer(5000, 100) {
                 override fun onTick(millisUntilFinished: Long) {
-                    countTimeShows.text = counter.toString()
 
-                    sendUDP(myUDP)
+                    //val bufferToSend = bufferMaker(myUDP)
 
-                    counter++
+                    //sendUDP(myUDP)
+
+                    /*
+
+                    if(udpMessageHead == udpMessageTail){
+                        sendUDP("STATUS\n")
+                        println("----- Sent STATUS ---- " + java.util.Calendar.getInstance())
+                    }else{
+                        sendUDP(myUDPMessageBuffer[udpMessageTail++].toString())
+                        if (udpMessageTail >19) udpMessageTail = 0
+                        println("----- Sent Message ----" + java.util.Calendar.getInstance())
+
+                    }
+
+                     */
+
                     Thread({
                         //Do some Network Request
                         receiveUDP()
+
+                        println("----- Before update---- ")
                         runOnUiThread({
                             //Update UI
-                            messageudp.text = message
+                            //messageudp.text = message
+
+
 
                             when (statusOnOFFReceived) {
                                 "OFF" -> {
+
+                                    println("-----updateing OFF---- ")
 
                                     OnOFFButton.setText("OFF")
 
                                     txtFanSpeed.text = "FAN"
                                     txtFanSpeed.textSize = 30f
+                                    txtFanSpeed.setPadding(0,0,0,0)
 
                                     SpeedBarShow.visibility = View.GONE
                                     SpeedBarShow.progress = 0
 
                                     txtRunTime.text = "OFF"
                                     txtRunTime.textSize = 30f
+                                    txtRunTime.setPadding(0,0,0,0)
+
                                     TimeShowHours.visibility = View.GONE
                                     TimeShowMinutes.visibility = View.GONE
                                     txt2Points.visibility = View.GONE
@@ -243,15 +342,20 @@ open class MainActivity : AppCompatActivity() {
                                 "ON" -> {
 
                                     OnOFFButton.setText("ON")
+                                    println("-----updateing ONN---- ")
 
                                     txtFanSpeed.text = "FAN SPEED"
                                     txtFanSpeed.textSize = 18f
+                                    txtFanSpeed.setPadding(0,0,0,150)
 
                                     SpeedBarShow.visibility = View.VISIBLE
                                     SpeedBarShow.progress = speedReceived.toInt()
+                                    mySpeed = speedReceived.toInt()
 
                                     txtRunTime.text = "RUN TIME"
                                     txtRunTime.textSize = 18f
+                                    txtRunTime.setPadding(0,0,0,200)
+
                                     TimeShowHours.visibility = View.VISIBLE
                                     TimeShowMinutes.visibility = View.VISIBLE
                                     txt2Points.visibility = View.VISIBLE
@@ -261,35 +365,48 @@ open class MainActivity : AppCompatActivity() {
                                     TimeShowMinutesReceiving.text = minutes2ShowScreen
                                     txt2PointsReceiving.visibility = View.VISIBLE
                                     SlashSeparator.visibility = View.VISIBLE
+
                                 }
                             }
+                            println("----- After update ---- ")
+
                         })
                     }).start()
                 }
                 override fun onFinish() {
-                    this.start()
+
+                    if (!threadKill){
+                        this.start()
+                    }else{
+                        finish()
+                    }
+
                 }
             }.start()
-
-        status.setOnClickListener {
-
-            myUDP = "STATUS"
-            sendUDP(myUDP)
-        }
 
         /*
         *btnOnOff: Button On/Off behavior
         **/
         btnOnOff.setOnClickListener{
+
+            sendAbilable = false
             // Button Off status
             if (OnOFFButton.text.toString() == "ON"){
+/*
+
                 OnOFFButton.setBackgroundColor(Color.RED)
                 OnOFFButton.setText("OFF")
+
                 txtFanSpeed.text = "FAN"
                 txtFanSpeed.textSize = 30f
-                SpeedBarShow.visibility = View.GONE
+                txtFanSpeed.setPadding(0,0,0,0)
+
                 txtRunTime.text = "OFF"
                 txtRunTime.textSize = 30f
+                txtRunTime.setPadding(0,0,0,0)
+
+                SpeedBarShow.visibility = View.GONE
+
                 TimeShowHours.visibility = View.GONE
                 TimeShowMinutes.visibility = View.GONE
                 txt2Points.visibility = View.GONE
@@ -304,20 +421,28 @@ open class MainActivity : AppCompatActivity() {
                 TimeShowHours.text = "0" + myTimeHours.toString()
                 TimeShowMinutes.text = "0" + myTimeMinutes.toString()
                 SpeedBarShow.progress = mySpeed
-
-                myUDPset = "STATE,OFF"
-                sendUDP(myUDPset)
+*/
+                //myUDP = "STATE,OFF\n"
+                //buff.set()
+                //myUDPStorage = myUDP
+                udpSendMessage("STATE,OFF\n")
 
             // Button On status
             }else{
+
+                /*
                 OnOFFButton.setBackgroundColor(Color.GREEN)
                 OnOFFButton.setText("ON")
 
                 txtFanSpeed.text = "FAN SPEED"
+                txtFanSpeed.setPadding(0,0,0,150)
                 txtFanSpeed.textSize = 18f
                 SpeedBarShow.visibility = View.VISIBLE
+
                 txtRunTime.text = "RUN TIME"
                 txtRunTime.textSize = 18f
+                txtRunTime.setPadding(0,0,0,200)
+
                 TimeShowHours.visibility = View.VISIBLE
                 TimeShowMinutes.visibility = View.VISIBLE
                 txt2Points.visibility = View.VISIBLE
@@ -326,8 +451,11 @@ open class MainActivity : AppCompatActivity() {
                 txt2PointsReceiving.visibility = View.VISIBLE
                 SlashSeparator.visibility = View.VISIBLE
 
-                myUDPset = "STATE,ON"
-                sendUDP(myUDPset)
+                 */
+
+                //myUDP = "STATE,ON\n"
+                //myUDPStorage = myUDP
+                udpSendMessage("STATE,ON\n")
 
             }
         }
@@ -403,10 +531,9 @@ open class MainActivity : AppCompatActivity() {
             if(OnOFFButton.text.toString() == "ON"){
                 mySpeed += 1
                 if (mySpeed > 15) mySpeed = 15
-                //val SpeedBarShow = this.findViewById<ProgressBar>(R.id.barSpeed)
-                SpeedBarShow.progress = mySpeed
-                myUDPset = "SPEED," + mySpeed.toString()
-                sendUDP(myUDPset)
+                //SpeedBarShow.progress = mySpeed
+                //myUDP = "SPEED," + mySpeed.toString()+"\n"
+                udpSendMessage("SPEED," + mySpeed.toString()+"\n")
             }
         }
 
@@ -417,9 +544,9 @@ open class MainActivity : AppCompatActivity() {
             if(OnOFFButton.text.toString() == "ON"){
                 mySpeed -= 1
                 if (mySpeed < 0) mySpeed = 0
-                SpeedBarShow.progress = mySpeed
-                myUDPset = "SPEED," + mySpeed.toString()
-                sendUDP(myUDPset)
+                //SpeedBarShow.progress = mySpeed
+                //myUDP = "SPEED," + mySpeed.toString()+"\n"
+                udpSendMessage("SPEED," + mySpeed.toString()+"\n")
             }
         }
 
@@ -428,8 +555,8 @@ open class MainActivity : AppCompatActivity() {
         **/
         btnSend.setOnClickListener {
             if(OnOFFButton.text.toString() == "ON"){
-                myUDPset = "TIME," + setTime
-                sendUDP(myUDPset)
+                //myUDP = "TIME," + setTime + "\n"
+                udpSendMessage("TIME," + setTime + "\n")
             }
         }
 
@@ -442,4 +569,15 @@ open class MainActivity : AppCompatActivity() {
         }
 
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+            threadKill = true
+    }
+
+    override fun onPause() {
+        super.onPause()
+        threadKill = true
+    }
+
 }
