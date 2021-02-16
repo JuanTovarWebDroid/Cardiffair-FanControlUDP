@@ -1,4 +1,12 @@
 <resources>
-    <string name="app_name">Hello World</string>
+    <string name="app_name">CardiffAir</string>
+    <string name="ON">ON</string>
+    <string name="OFF">OFF</string>
+    <string name="ZeroNumber">0</string>
+    <string name="FAN">FAN</string>
+    <string name="FAN_SPEED">FAN SPEED</string>
+    <string name="RUN_TIME">RUN TIME</string>
+    <string name="Concatenate_Zero">%1$d%2$d</string>
+
 
 </resources>

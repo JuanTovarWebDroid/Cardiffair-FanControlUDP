@@ -52,54 +52,33 @@ var myUDP:String = ""
 val myUDPMessageBuffer = arrayOfNulls<String>(20)
 var udpMessageHead: Int = 0
 var udpMessageTail: Int = 0
-//var udpMessage:String=""
-//var udpNewMessage:Boolean= false
 
-var message:String=""
 var statusOnOFFReceived:String=""
 var speedReceived:String=""
 var hour2ShowScreen:String=""
 var minutes2ShowScreen:String=""
 var setTime:String=""
-var myUDPset:String=""
 var threadKill:Boolean = false
-var sendAbilable:Boolean = true
-var myUDPStorage:String = ""
 
 /*
 SoftOptions: Class with the IP and port variables to send the message through UDP protocol.
  */
-public class SoftOptions {
-    var RemoteHost: String = "192.168.1.255"
-    var RemotePort: Int = 4445
+class SoftOptions() {
+    var remoteHost: String = "192.168.1.255"
+    var remotePort: Int = 4445
 
-    constructor()
     init{}
 }
 
-//var RemoteHostMine: String = "192.168.1.117"
 // Global variable
 val mySettings = SoftOptions()
-var buff = ByteArray(2048)
 
 open class MainActivity : AppCompatActivity() {
 
 
-    fun udpSendMessage (myTextString: String){
+    private fun udpSendMessage (myTextString: String){
         myUDPMessageBuffer[udpMessageHead++] = myTextString
         if (udpMessageHead >19) udpMessageHead = 0
-    }
-
-    fun bufferMaker(messageStr: String): ByteArray{
-
-        val data4Buffer = messageStr.toByte()
-
-        for (i in buff.indices){
-            buff[i] = data4Buffer
-        }
-
-        return buff
-
     }
 
     /*
@@ -115,8 +94,7 @@ open class MainActivity : AppCompatActivity() {
             val socket = DatagramSocket()
             socket.broadcast = true
             val sendData = messageStr.toByteArray()
-            //buff[1] = messageStr.toByte()
-            val sendPacket = DatagramPacket(sendData, sendData.size, InetAddress.getByName(mySettings.RemoteHost), mySettings.RemotePort
+            val sendPacket = DatagramPacket(sendData, sendData.size, InetAddress.getByName(mySettings.remoteHost), mySettings.remotePort
             )
             socket.send(sendPacket)
 
@@ -138,8 +116,8 @@ open class MainActivity : AppCompatActivity() {
         try {
             //Keep a socket open to listen to all the UDP trafic that is destined for this port
             socket = DatagramSocket(
-                mySettings.RemotePort,
-                InetAddress.getByName(mySettings.RemoteHost)
+                mySettings.remotePort,
+                InetAddress.getByName(mySettings.remoteHost)
             )
             socket.broadcast = true
             socket.reuseAddress = true
@@ -152,38 +130,28 @@ open class MainActivity : AppCompatActivity() {
             println("----- Received Message ---- ")
 
             val data = String(packet.data, 0, packet.length)
-            message = data
-            var datamessage = message.toString()
-            var parts = datamessage.split(",")
+
+            val parts:List<String> = data.split(",")
 
             statusOnOFFReceived = parts[0]
             speedReceived = parts[1]
 
-            var hour = parts[2].toInt()/3600
+            val hour2Show = parts[2].toInt()/3600
+            val newHourInSeconds = hour2Show * 3600
+            val minutesInSeconds = parts[2].toInt() - newHourInSeconds
 
-            val hour2Show = hour as Int
-            val newHourInSecounds = hour2Show * 3600
-            val minutesInSecounds = parts[2].toInt() - newHourInSecounds
+            val minutes2Show = minutesInSeconds/60
 
-            var minutes2Show = minutesInSecounds/60
-            minutes2Show = minutes2Show as Int
+            hour2ShowScreen = if(hour2Show <10){"0$hour2Show"}
+            else hour2Show.toString()
 
-            if(hour2Show <10){
-                hour2ShowScreen = "0" + hour2Show.toString()
-            } else{
-                hour2ShowScreen = hour2Show.toString()
-            }
-
-            if(minutes2Show <10){
-                minutes2ShowScreen = "0" + minutes2Show.toString()
-            } else{
-                minutes2ShowScreen = minutes2Show.toString()
-            }
+            minutes2ShowScreen = if(minutes2Show <10){"0$minutes2Show"}
+            else minutes2Show.toString()
 
             //socket.close()
 
         } catch (e: Exception) {
-            println("open fun receiveUDP catch exception." + e.toString())
+            println("open fun receiveUDP catch exception.$e")
             e.printStackTrace()
         } finally {
             socket?.close()
@@ -196,149 +164,112 @@ open class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         // General variables
-        val OnOFFButton = this.findViewById<Button>(R.id.btnOnOff)
+        val onOFFButton = this.findViewById<Button>(R.id.btnOnOff)
         val txtFanSpeed = this.findViewById<TextView>(R.id.txtFanSpeed)
-        val SpeedBarShow = this.findViewById<ProgressBar>(R.id.barSpeed)
+        val speedBarShow = this.findViewById<ProgressBar>(R.id.barSpeed)
         val txtRunTime = this.findViewById<TextView>(R.id.txtRunTime)
-        val TimeShowHours = this.findViewById<TextView>(R.id.txtTimeHours)
-        val TimeShowMinutes = this.findViewById<TextView>(R.id.txtTimeMinutes)
+        val timeShowHours = this.findViewById<TextView>(R.id.txtTimeHours)
+        val timeShowMinutes = this.findViewById<TextView>(R.id.txtTimeMinutes)
         val txt2Points = this.findViewById<TextView>(R.id.txtTimeHourCero)
         val txt2PointsReceiving = this.findViewById<TextView>(R.id.txtTimeHourPointReceive)
-        val TimeShowHoursReceiving= this.findViewById<TextView>(R.id.txtTimeHoursReceiving)
-        val TimeShowMinutesReceiving= this.findViewById<TextView>(R.id.txtTimeMinutesReceiving)
-        val SlashSeparator= this.findViewById<TextView>(R.id.txtTimeSlash)
+        val timeShowHoursReceiving= this.findViewById<TextView>(R.id.txtTimeHoursReceiving)
+        val timeShowMinutesReceiving= this.findViewById<TextView>(R.id.txtTimeMinutesReceiving)
+        val slashSeparator= this.findViewById<TextView>(R.id.txtTimeSlash)
 
         threadKill = false
-        //myUDP = "STATUS\n"
-
-
-        var messageudp = this.findViewById<TextView>(R.id.messageudp)
-
-
-        /*object  : CountDownTimer(5000, 1000) {
-            override fun onTick(millisUntilFinished: Long) {
-
-                // if(sendAbilable){
-                sendUDP(myUDP)
-                //}
-
-                Thread({
-                    //Do some Network Request
-                    receiveUDP()
-                    runOnUiThread({
-                        //Update UI
-
-                    })
-                }).start()
-            }
-            override fun onFinish() {
-
-                if (!threadKill){
-                    this.start()
-                }else{
-                    finish()
-                }
-            }
-        }.start()
-
-*/
 
         object  : CountDownTimer(5000, 1000) {
             override fun onTick(millisUntilFinished: Long) {
 
-                Thread({
+                Thread(){
                     if(udpMessageHead == udpMessageTail){
                         sendUDP("STATUS\n")
-                        println("----- Sent STATUS ---- " + java.util.Calendar.getInstance())
+                        println("----- Sent STATUS ---- ")
                     }else{
                         sendUDP(myUDPMessageBuffer[udpMessageTail++].toString())
                         if (udpMessageTail >19) udpMessageTail = 0
-                        println("----- Sent Message ----" + java.util.Calendar.getInstance())
-
+                        println("----- Sent Message ----")
                     }
-                    runOnUiThread({
-
-                    })
-                }).start()
+                    runOnUiThread(){
+                    }
+                }.start()
             }
             override fun onFinish() {
-
                 if (!threadKill){
                     this.start()
                 }else{
                     finish()
                 }
-
             }
         }.start()
 
+
         object  : CountDownTimer(5000, 100) {
                 override fun onTick(millisUntilFinished: Long) {
-
-                    Thread({
+                    Thread(){
                         //Do some Network Request
                         receiveUDP()
 
                         println("----- Before update---- ")
-                        runOnUiThread({
+                        runOnUiThread(){
                             //Update UI
 
                             when (statusOnOFFReceived) {
                                 "OFF" -> {
                                     println("-----updateing OFF---- ")
 
-                                    OnOFFButton.setText("OFF")
+                                    onOFFButton.setText(R.string.OFF)
 
-                                    txtFanSpeed.text = "FAN"
+                                    txtFanSpeed.text = R.string.FAN.toString()
                                     txtFanSpeed.textSize = 30f
                                     txtFanSpeed.setPadding(0,0,0,0)
 
-                                    SpeedBarShow.visibility = View.GONE
-                                    SpeedBarShow.progress = 0
+                                    speedBarShow.visibility = View.GONE
+                                    speedBarShow.progress = 0
 
-                                    txtRunTime.text = "OFF"
+                                    txtRunTime.text = R.string.OFF.toString()
                                     txtRunTime.textSize = 30f
                                     txtRunTime.setPadding(0,0,0,0)
 
-                                    TimeShowHours.visibility = View.GONE
-                                    TimeShowMinutes.visibility = View.GONE
+                                    timeShowHours.visibility = View.GONE
+                                    timeShowMinutes.visibility = View.GONE
                                     txt2Points.visibility = View.GONE
-                                    TimeShowHoursReceiving.visibility = View.GONE
-                                    TimeShowMinutesReceiving.visibility = View.GONE
+                                    timeShowHoursReceiving.visibility = View.GONE
+                                    timeShowMinutesReceiving.visibility = View.GONE
                                     txt2PointsReceiving.visibility = View.GONE
-                                    SlashSeparator.visibility = View.GONE
+                                    slashSeparator.visibility = View.GONE
                                 }
                                 "ON" -> {
 
-                                    OnOFFButton.setText("ON")
+                                    onOFFButton.setText(R.string.ON)
                                     println("-----updateing ONN---- ")
 
-                                    txtFanSpeed.text = "FAN SPEED"
+                                    txtFanSpeed.text = R.string.FAN_SPEED.toString()
                                     txtFanSpeed.textSize = 18f
-                                    txtFanSpeed.setPadding(0,0,0,150)
+                                    txtFanSpeed.setPadding(0,0,0,230)
 
-                                    SpeedBarShow.visibility = View.VISIBLE
-                                    SpeedBarShow.progress = speedReceived.toInt()
+                                    speedBarShow.visibility = View.VISIBLE
+                                    speedBarShow.progress = speedReceived.toInt()
                                     mySpeed = speedReceived.toInt()
 
-                                    txtRunTime.text = "RUN TIME"
+                                    txtRunTime.text = R.string.RUN_TIME.toString()
                                     txtRunTime.textSize = 18f
                                     txtRunTime.setPadding(0,0,0,200)
 
-                                    TimeShowHours.visibility = View.VISIBLE
-                                    TimeShowMinutes.visibility = View.VISIBLE
+                                    timeShowHours.visibility = View.VISIBLE
+                                    timeShowMinutes.visibility = View.VISIBLE
                                     txt2Points.visibility = View.VISIBLE
-                                    TimeShowHoursReceiving.visibility = View.VISIBLE
-                                    TimeShowHoursReceiving.text = hour2ShowScreen
-                                    TimeShowMinutesReceiving.visibility = View.VISIBLE
-                                    TimeShowMinutesReceiving.text = minutes2ShowScreen
+                                    timeShowHoursReceiving.visibility = View.VISIBLE
+                                    timeShowHoursReceiving.text = hour2ShowScreen
+                                    timeShowMinutesReceiving.visibility = View.VISIBLE
+                                    timeShowMinutesReceiving.text = minutes2ShowScreen
                                     txt2PointsReceiving.visibility = View.VISIBLE
-                                    SlashSeparator.visibility = View.VISIBLE
+                                    slashSeparator.visibility = View.VISIBLE
                                 }
                             }
                             println("----- After update ---- ")
-                        })
-                    }).start()
+                        }
+                    }.start()
                 }
                 override fun onFinish() {
                     if (!threadKill){
@@ -354,9 +285,8 @@ open class MainActivity : AppCompatActivity() {
         **/
         btnOnOff.setOnClickListener{
 
-            sendAbilable = false
             // Button Off status
-            if (OnOFFButton.text.toString() == "ON"){
+            if (onOFFButton.text.toString() == "ON"){
                 udpSendMessage("STATE,OFF\n")
             // Button On status
             }else{
@@ -368,8 +298,7 @@ open class MainActivity : AppCompatActivity() {
         *btnUpTime: Button to increase the time in 15 minutes. The maximum value is 24:00 (24 hours)
         **/
         btnUpTime.setOnClickListener{
-
-            if(OnOFFButton.text.toString() == "ON"){
+            if(onOFFButton.text.toString() == "ON"){
                 myTimeMinutes += 15
 
                 if (myTimeMinutes >= 60){
@@ -383,14 +312,14 @@ open class MainActivity : AppCompatActivity() {
                 setTime = (myTimeHours*3600 + myTimeMinutes*60).toString()
 
                 if(myTimeMinutes == 0 || myTimeMinutes == 60){
-                    TimeShowMinutes.text = "0" + myTimeMinutes.toString()
+                    timeShowMinutes.text = getString(0, myTimeMinutes)
                 }else{
-                    TimeShowMinutes.text = myTimeMinutes.toString()
+                    timeShowMinutes.text = myTimeMinutes.toString()
                 }
                 if(myTimeHours <10){
-                    TimeShowHours.text = "0" + myTimeHours.toString()
+                    timeShowHours.text = getString(0, myTimeHours)
                 } else{
-                    TimeShowHours.text = myTimeHours.toString()
+                    timeShowHours.text = myTimeHours.toString()
                 }
             }
         }
@@ -398,7 +327,7 @@ open class MainActivity : AppCompatActivity() {
         *btnDownTime: Button to decrease the time in 15 minutes. The minimum value is 00:00
         **/
         btnDownTime.setOnClickListener {
-            if(OnOFFButton.text.toString() == "ON"){
+            if(onOFFButton.text.toString() == "ON"){
                 if((myTimeMinutes != 0) || (myTimeHours != 0)) {
                     myTimeMinutes -= 15
 
@@ -413,15 +342,15 @@ open class MainActivity : AppCompatActivity() {
                     setTime = (myTimeHours*3600 + myTimeMinutes*60).toString()
 
                     if(myTimeMinutes == 0 || myTimeMinutes == 60){
-                        TimeShowMinutes.text = "0" + myTimeMinutes.toString()
+                        timeShowMinutes.text = getString(0, myTimeMinutes)
                     }else{
-                        TimeShowMinutes.text = myTimeMinutes.toString()
+                        timeShowMinutes.text = myTimeMinutes.toString()
                     }
 
                     if (myTimeHours <= 9){
-                        TimeShowHours.text = "0" + myTimeHours.toString()
+                        timeShowHours.text = getString(0, myTimeHours)
                     }else{
-                        TimeShowHours.text = myTimeHours.toString()
+                        timeShowHours.text = myTimeHours.toString()
                     }
                 }
             }
@@ -431,10 +360,10 @@ open class MainActivity : AppCompatActivity() {
         *btnIncreaseVel: Button to increase the velocity in 1 step. The maximum value is 15.
         **/
         btnIncreaseVel.setOnClickListener {
-            if(OnOFFButton.text.toString() == "ON"){
+            if(onOFFButton.text.toString() == "ON"){
                 mySpeed += 1
                 if (mySpeed > 15) mySpeed = 15
-                udpSendMessage("SPEED," + mySpeed.toString()+"\n")
+                udpSendMessage("SPEED,$mySpeed\n")
             }
         }
 
@@ -442,10 +371,10 @@ open class MainActivity : AppCompatActivity() {
         *btnDecreaseVel: Button to decrease the velocity in 1 step. The minimum value is 0.
         **/
         btnDecreaseVel.setOnClickListener {
-            if(OnOFFButton.text.toString() == "ON"){
+            if(onOFFButton.text.toString() == "ON"){
                 mySpeed -= 1
                 if (mySpeed < 0) mySpeed = 0
-                udpSendMessage("SPEED," + mySpeed.toString()+"\n")
+                udpSendMessage("SPEED,$mySpeed.$\n")
             }
         }
 
@@ -453,8 +382,8 @@ open class MainActivity : AppCompatActivity() {
         *btnSend: Button to send the time displayed on the screen. It sends a string (in UDP protocol) by broadcast.
         **/
         btnSend.setOnClickListener {
-            if(OnOFFButton.text.toString() == "ON"){
-                udpSendMessage("TIME," + setTime + "\n")
+            if(onOFFButton.text.toString() == "ON"){
+                udpSendMessage("TIME,$setTime\n")
             }
         }
 
@@ -462,7 +391,7 @@ open class MainActivity : AppCompatActivity() {
         *btnSettings: Hidden button for testing and setting other IP address and other port.
         **/
         btnSettings.setOnClickListener {
-            val intent = Intent(this, Settings::class.java);
+            val intent = Intent(this, Settings::class.java)
             startActivity(intent)
         }
     }
