@@ -13,7 +13,7 @@ For intallation requires API 26 or higher in Android OS:
 	- Install.
 	- Open.
 
-![alt text](/image/CardiffairAppImage.jpg)
+![alt text](https://github.com/JuanTovarWebDroid/Cardiffair-FanControlUDP/image/CardiffairAppImage.jpg)
 
 The purpose of this repo is to be a backup system for Cardiffair fan control app.
 
