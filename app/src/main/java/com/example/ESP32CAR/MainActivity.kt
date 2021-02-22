@@ -26,7 +26,6 @@ fan can be turn off from the app.
 package com.example.ESP32CAR
 
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.StrictMode
@@ -60,6 +59,9 @@ var minutes2ShowScreen:String=""
 var setTime:String=""
 var threadKill:Boolean = false
 
+
+//private val parentJob = Job()
+
 /*
 SoftOptions: Class with the IP and port variables to send the message through UDP protocol.
  */
@@ -74,7 +76,6 @@ class SoftOptions() {
 val mySettings = SoftOptions()
 
 open class MainActivity : AppCompatActivity() {
-
 
     private fun udpSendMessage (myTextString: String){
         myUDPMessageBuffer[udpMessageHead++] = myTextString
@@ -134,6 +135,7 @@ open class MainActivity : AppCompatActivity() {
             val parts:List<String> = data.split(",")
 
             statusOnOFFReceived = parts[0]
+            println("This is the status ON/OFF " + statusOnOFFReceived)
             speedReceived = parts[1]
 
             val hour2Show = parts[2].toInt()/3600
@@ -142,10 +144,10 @@ open class MainActivity : AppCompatActivity() {
 
             val minutes2Show = minutesInSeconds/60
 
-            hour2ShowScreen = if(hour2Show <10){"0$hour2Show"}
+            hour2ShowScreen = if(hour2Show <10){"0" + hour2Show}
             else hour2Show.toString()
 
-            minutes2ShowScreen = if(minutes2Show <10){"0$minutes2Show"}
+            minutes2ShowScreen = if(minutes2Show <10){"0" + minutes2Show}
             else minutes2Show.toString()
 
             //socket.close()
@@ -178,39 +180,26 @@ open class MainActivity : AppCompatActivity() {
 
         threadKill = false
 
-        object  : CountDownTimer(5000, 1000) {
-            override fun onTick(millisUntilFinished: Long) {
-
-                Thread(){
-                    if(udpMessageHead == udpMessageTail){
-                        sendUDP("STATUS\n")
-                        println("----- Sent STATUS ---- ")
-                    }else{
-                        sendUDP(myUDPMessageBuffer[udpMessageTail++].toString())
-                        if (udpMessageTail >19) udpMessageTail = 0
-                        println("----- Sent Message ----")
-                    }
-                    runOnUiThread(){
-                    }
-                }.start()
-            }
-            override fun onFinish() {
-                if (!threadKill){
-                    this.start()
-                }else{
-                    finish()
-                }
-            }
-        }.start()
-
-
+        var cd = 0
         object  : CountDownTimer(5000, 100) {
                 override fun onTick(millisUntilFinished: Long) {
+
                     Thread(){
                         //Do some Network Request
                         receiveUDP()
+                        cd ++
+                        if(cd == 9){
+                            udpSendMessage("STATUS\n")
+                            println("----- PUT IN BUFFER STATUS ---- ")
+                            cd = 0
+                        }
 
-                        println("----- Before update---- ")
+                        if(udpMessageHead != udpMessageTail){
+                            sendUDP(myUDPMessageBuffer[udpMessageTail++].toString())
+                            if (udpMessageTail >19) udpMessageTail = 0
+                            println("----- Sent Message ----")
+                            cd = 0
+                        }
                         runOnUiThread(){
                             //Update UI
 
@@ -218,16 +207,16 @@ open class MainActivity : AppCompatActivity() {
                                 "OFF" -> {
                                     println("-----updateing OFF---- ")
 
-                                    onOFFButton.setText(R.string.OFF)
+                                    onOFFButton.setText("OFF")
 
-                                    txtFanSpeed.text = R.string.FAN.toString()
+                                    txtFanSpeed.text = "FAN"
                                     txtFanSpeed.textSize = 30f
                                     txtFanSpeed.setPadding(0,0,0,0)
 
                                     speedBarShow.visibility = View.GONE
                                     speedBarShow.progress = 0
 
-                                    txtRunTime.text = R.string.OFF.toString()
+                                    txtRunTime.text = "OFF"
                                     txtRunTime.textSize = 30f
                                     txtRunTime.setPadding(0,0,0,0)
 
@@ -242,19 +231,19 @@ open class MainActivity : AppCompatActivity() {
                                 "ON" -> {
 
                                     onOFFButton.setText(R.string.ON)
-                                    println("-----updateing ONN---- ")
+                                    println("-----SCREEN UPDATE ---- ")
 
-                                    txtFanSpeed.text = R.string.FAN_SPEED.toString()
+                                    txtFanSpeed.text = "FAN SPEED"
                                     txtFanSpeed.textSize = 18f
-                                    txtFanSpeed.setPadding(0,0,0,230)
+                                    txtFanSpeed.setPadding(0,0,0,150)
 
                                     speedBarShow.visibility = View.VISIBLE
                                     speedBarShow.progress = speedReceived.toInt()
                                     mySpeed = speedReceived.toInt()
 
-                                    txtRunTime.text = R.string.RUN_TIME.toString()
+                                    txtRunTime.text = "RUN TIME"
                                     txtRunTime.textSize = 18f
-                                    txtRunTime.setPadding(0,0,0,200)
+                                    txtRunTime.setPadding(0,0,0,250)
 
                                     timeShowHours.visibility = View.VISIBLE
                                     timeShowMinutes.visibility = View.VISIBLE
@@ -267,9 +256,9 @@ open class MainActivity : AppCompatActivity() {
                                     slashSeparator.visibility = View.VISIBLE
                                 }
                             }
-                            println("----- After update ---- ")
                         }
-                    }.start()
+
+                   }.start()
                 }
                 override fun onFinish() {
                     if (!threadKill){
@@ -287,13 +276,13 @@ open class MainActivity : AppCompatActivity() {
 
             // Button Off status
             if (onOFFButton.text.toString() == "ON"){
-                udpSendMessage("STATE,OFF\n")
+                //sendUDP("STATE,OFF\n")
+                udpSendMessage("STATE:OFF\n")
             // Button On status
             }else{
-                udpSendMessage("STATE,ON\n")
+                udpSendMessage("STATE:ON\n")
             }
         }
-
         /*
         *btnUpTime: Button to increase the time in 15 minutes. The maximum value is 24:00 (24 hours)
         **/
@@ -312,12 +301,12 @@ open class MainActivity : AppCompatActivity() {
                 setTime = (myTimeHours*3600 + myTimeMinutes*60).toString()
 
                 if(myTimeMinutes == 0 || myTimeMinutes == 60){
-                    timeShowMinutes.text = getString(0, myTimeMinutes)
+                    timeShowMinutes.text = "0" + myTimeMinutes.toString()
                 }else{
                     timeShowMinutes.text = myTimeMinutes.toString()
                 }
                 if(myTimeHours <10){
-                    timeShowHours.text = getString(0, myTimeHours)
+                    timeShowHours.text = "0" + myTimeHours.toString()
                 } else{
                     timeShowHours.text = myTimeHours.toString()
                 }
@@ -342,13 +331,13 @@ open class MainActivity : AppCompatActivity() {
                     setTime = (myTimeHours*3600 + myTimeMinutes*60).toString()
 
                     if(myTimeMinutes == 0 || myTimeMinutes == 60){
-                        timeShowMinutes.text = getString(0, myTimeMinutes)
+                        timeShowMinutes.text = "0" + myTimeMinutes.toString()
                     }else{
                         timeShowMinutes.text = myTimeMinutes.toString()
                     }
 
                     if (myTimeHours <= 9){
-                        timeShowHours.text = getString(0, myTimeHours)
+                        timeShowHours.text = "0" +  myTimeHours.toString()
                     }else{
                         timeShowHours.text = myTimeHours.toString()
                     }
@@ -363,7 +352,8 @@ open class MainActivity : AppCompatActivity() {
             if(onOFFButton.text.toString() == "ON"){
                 mySpeed += 1
                 if (mySpeed > 15) mySpeed = 15
-                udpSendMessage("SPEED,$mySpeed\n")
+                udpSendMessage("SPEED:"+mySpeed+"\n")
+                println("****************** Button UP Pressed ****************** 1")
             }
         }
 
@@ -374,7 +364,8 @@ open class MainActivity : AppCompatActivity() {
             if(onOFFButton.text.toString() == "ON"){
                 mySpeed -= 1
                 if (mySpeed < 0) mySpeed = 0
-                udpSendMessage("SPEED,$mySpeed.$\n")
+                udpSendMessage("SPEED:"+mySpeed+"\n")
+                println("****************** Button Down Pressed ******************")
             }
         }
 
@@ -383,7 +374,7 @@ open class MainActivity : AppCompatActivity() {
         **/
         btnSend.setOnClickListener {
             if(onOFFButton.text.toString() == "ON"){
-                udpSendMessage("TIME,$setTime\n")
+                udpSendMessage("TIME:"+setTime+"\n")
             }
         }
 
